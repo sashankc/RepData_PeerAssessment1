@@ -4,24 +4,71 @@ output:
   html_document:
     keep_md: true
 ---
+```{r}
+#install.packages("dplyr")
+#install.packages("ggplot2")
+#install.packages("lubridate")
 
-# test for checking in
+#loading the libraries
+library(dplyr)
+library(ggplot2)
+library(lubridate)
 
 
 ## Loading and preprocessing the data
 
+aData<-read.csv("activity.csv", header = TRUE, colClasses = c("numeric","character","integer"))
+
+#convert date to the dateformat using lubridate
+
+aData$date<-ymd(aData$date)
+
+org_Data<-aData
+oSteps<- aData %>% filter(!is.na(steps)) %>% group_by(date) %>% summarise(steps=sum(steps))
+
+ggplot(oSteps, aes(x=steps))+geom_histogram(fill="green")+labs(title="Steps per Day",x="steps",y="frequency")
 
 
 ## What is mean total number of steps taken per day?
 
-
-
+meanSteps <- mean(oSteps$steps)
+meanSteps
+medianSteps <- median(oSteps$steps)
+medianSteps
 ## What is the average daily activity pattern?
+
+
+oInterval<-aData%>%filter(!is.na(steps))%>%group_by(interval)%>%summarise(steps=mean(steps))
+ggplot(oInterval, aes(x=interval, y=steps))+geom_line(color="red")
+oInterval[which.max(oInterval$steps),]
 
 
 
 ## Imputing missing values
 
+count(aData%>%filter(is.na(steps)))
 
+nas <- is.na(aData$steps)
+processedData<-aData
+
+
+avg_interval<-tapply(aData$steps, aData$interval, mean, na.rm=TRUE, simplify = TRUE)
+
+processedData$steps[nas] <- avg_interval[as.character(processedData$interval[nas])]
+
+sum(is.na(processedData$steps))
+
+# Missing value data histogram
+
+ggplot(org_Data, aes(x=steps))+geom_histogram(fill="yellow")+labs(title="Missing data Steps per Day",x="steps",y="frequency")
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+weektype <-ifelse(weekdays(aData$date) == "Saturday" | weekdays(aData$date) == "Sunday", "weekend", "weekday")
+aData<-mutate(aData, weektype)
+
+weekday_aData <- aData %>%group_by(interval, weektype) %>%summarise(steps = mean(steps))
+
+
+```
